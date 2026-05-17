@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ThyroAI — Thyroid Cancer Detection</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family:'Segoe UI',sans-serif;
+  background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+  min-height:100vh; color:#fff;
+}
+.hidden { display:none !important; }
+
+/* Login */
+#login-page {
+  display:flex; align-items:center;
+  justify-content:center; min-height:100vh;
+}
+.login-box {
+  background:rgba(255,255,255,0.07);
+  border:1px solid rgba(255,255,255,0.15);
+  border-radius:20px; padding:40px;
+  width:400px; text-align:center;
+}
+.login-box h1 { color:#00d4ff; font-size:2.2em; margin-bottom:5px; }
+.login-box p  { color:rgba(255,255,255,0.5); margin-bottom:25px; }
+.inp-grp { margin-bottom:15px; text-align:left; }
+.inp-grp label {
+  font-size:0.83em; color:rgba(255,255,255,0.6);
+  display:block; margin-bottom:5px;
+}
+.inp-grp input {
+  width:100%; padding:12px;
+  background:rgba(255,255,255,0.08);
+  border:1px solid rgba(255,255,255,0.15);
+  border-radius:8px; color:#fff; font-size:0.95em;
+}
+
+/* App */
+#app { max-width:960px; margin:0 auto; padding:20px; }
+.topbar {
+  display:flex; justify-content:space-between;
+  align-items:center; padding:15px 0;
+  border-bottom:1px solid rgba(255,255,255,0.1);
+  margin-bottom:25px;
+}
+.topbar h1 { color:#00d4ff; font-size:1.8em; }
+
+/* Mode Toggle */
+.mode-toggle {
+  display:flex; gap:10px;
+  background:rgba(255,255,255,0.05);
+  padding:5px; border-radius:10px; margin-bottom:25px;
+}
+.mode-btn {
+  flex:1; padding:12px; border:none; border-radius:8px;
+  cursor:pointer; font-size:0.95em; font-weight:bold;
+  background:transparent; color:rgba(255,255,255,0.5);
+  transition:0.3s;
+}
+.mode-btn.active {
+  background:#00d4ff; color:#0f2027;
+}
+
+/* Cards */
+.card {
+  background:rgba(255,255,255,0.05);
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:15px; padding:25px; margin-bottom:20px;
+}
+.card h2 { color:#00d4ff; margin-bottom:5px; }
+.card .subtitle {
+  color:rgba(255,255,255,0.4);
+  font-size:0.85em; margin-bottom:20px;
+}
+
+/* Form */
+.section-title {
+  font-size:0.78em; text-transform:uppercase;
+  color:#00d4ff; letter-spacing:1px;
+  margin:20px 0 12px; font-weight:bold;
+}
+.grid { display:grid; grid-template-columns:1fr 1fr; gap:15px; }
+.form-group { display:flex; flex-direction:column; gap:5px; }
+.form-group label {
+  font-size:0.83em; color:rgba(255,255,255,0.7);
+}
+.form-group .hint {
+  font-size:0.75em; color:rgba(255,255,255,0.35);
+  margin-top:2px;
+}
+input, select {
+  padding:11px 13px;
+  background:rgba(255,255,255,0.08);
+  border:1px solid rgba(255,255,255,0.15);
+  border-radius:8px; color:#fff; font-size:0.92em;
+}
+input:focus, select:focus {
+  outline:none; border-color:#00d4ff;
+}
+select option { background:#203a43; }
+input.err { border-color:#ff4757; }
+.err-msg {
+  color:#ff4757; font-size:0.75em; margin-top:2px;
+}
+
+/* Buttons */
+.btn {
+  padding:13px 22px; border:none; border-radius:10px;
+  font-size:1em; font-weight:bold;
+  cursor:pointer; transition:0.3s;
+}
+.btn-primary {
+  background:linear-gradient(135deg,#00d4ff,#0099bb);
+  color:#fff; width:100%; margin-top:15px; font-size:1.05em;
+}
+.btn-primary:hover { transform:translateY(-2px); opacity:0.9; }
+.btn-sm {
+  padding:8px 16px; font-size:0.85em;
+  background:rgba(255,255,255,0.08);
+  color:#fff;
+  border:1px solid rgba(255,255,255,0.2);
+  border-radius:8px;
+}
+.btn-danger {
+  background:#ff4757; color:#fff;
+  padding:8px 16px; font-size:0.85em; border-radius:8px;
+}
+
+/* Alert */
+.alert {
+  padding:15px 20px; border-radius:12px;
+  margin-bottom:20px; font-size:1em;
+  display:flex; align-items:center; gap:12px;
+}
+.alert-high   { background:rgba(255,71,87,0.15);
+                border:2px solid #ff4757; color:#ff4757; }
+.alert-medium { background:rgba(255,165,0,0.15);
+                border:2px solid orange; color:orange; }
+.alert-low    { background:rgba(46,213,115,0.15);
+                border:2px solid #2ed573; color:#2ed573; }
+
+/* Results */
+.result-grid {
+  display:grid; grid-template-columns:1fr 1fr 1fr; gap:15px;
+}
+.result-card {
+  background:rgba(255,255,255,0.05);
+  border:2px solid rgba(0,212,255,0.25);
+  border-radius:12px; padding:20px; text-align:center;
+}
+.result-card h3 {
+  color:rgba(255,255,255,0.5);
+  font-size:0.8em; margin-bottom:10px;
+  text-transform:uppercase; letter-spacing:0.5px;
+}
+.result-value { font-size:1.5em; font-weight:bold; color:#00d4ff; }
+.result-sub   { font-size:0.8em; color:rgba(255,255,255,0.4); margin-top:5px; }
+.positive { color:#ff4757 !important; }
+.negative { color:#2ed573 !important; }
+
+/* Charts */
+.chart-row {
+  display:grid; grid-template-columns:1fr 1fr 1fr;
+  gap:15px; margin-top:20px; text-align:center;
+}
+.chart-box canvas { max-width:150px; margin:0 auto; display:block; }
+.chart-box p { font-size:0.78em; color:rgba(255,255,255,0.45); margin-top:6px; }
+
+/* Explanation box */
+.explain-box {
+  background:rgba(0,212,255,0.05);
+  border:1px solid rgba(0,212,255,0.2);
+  border-radius:10px; padding:15px; margin-top:15px;
+}
+.explain-box h4 { color:#00d4ff; margin-bottom:8px; font-size:0.9em; }
+.explain-box p  { font-size:0.85em; color:rgba(255,255,255,0.6); line-height:1.6; }
+
+/* History */
+table { width:100%; border-collapse:collapse; font-size:0.85em; }
+th {
+  background:rgba(0,212,255,0.1);
+  padding:10px; text-align:left; color:#00d4ff;
+}
+td { padding:10px; border-bottom:1px solid rgba(255,255,255,0.06); }
+.badge {
+  padding:3px 10px; border-radius:20px;
+  font-size:0.78em; font-weight:bold;
+}
+.badge-high   { background:rgba(255,71,87,0.2);  color:#ff4757; }
+.badge-medium { background:rgba(255,165,0,0.2);  color:orange; }
+.badge-low    { background:rgba(46,213,115,0.2); color:#2ed573; }
+
+.loading {
+  text-align:center; padding:25px;
+  color:#00d4ff; font-size:1.05em;
+}
+
+/* Tooltip */
+.tooltip-wrap { position:relative; display:inline-block; }
+.tooltip-wrap .tip {
+  visibility:hidden; opacity:0;
+  background:#1a3a4a; color:#fff;
+  font-size:0.78em; padding:6px 10px;
+  border-radius:6px; position:absolute;
+  bottom:125%; left:50%; transform:translateX(-50%);
+  white-space:nowrap; z-index:10;
+  border:1px solid rgba(0,212,255,0.3);
+  transition:opacity 0.2s;
+}
+.tooltip-wrap:hover .tip { visibility:visible; opacity:1; }
+.info-icon {
+  display:inline-block; width:16px; height:16px;
+  background:rgba(0,212,255,0.3); color:#00d4ff;
+  border-radius:50%; font-size:0.7em; text-align:center;
+  line-height:16px; cursor:help; margin-left:4px;
+}
+</style>
+</head>
+<body>
+
+<!-- ══════ LOGIN ══════ -->
+<div id="login-page">
+  <div class="login-box">
+    <h1>🧬 ThyroAI</h1>
+    <p>AI-Powered Thyroid Cancer Detection System</p>
+    <div class="inp-grp">
+      <label>Username</label>
+      <input type="text" id="username" value="doctor">
+    </div>
+    <div class="inp-grp">
+      <label>Password</label>
+      <input type="password" id="password" value="thyroai2024">
+    </div>
+    <div id="login-err"
+         style="color:#ff4757;margin:8px 0;display:none;font-size:0.88em">
+    </div>
+    <button class="btn btn-primary" onclick="login()">
+      🔐 Login to ThyroAI
+    </button>
+    <p style="margin-top:12px;font-size:0.75em;color:rgba(255,255,255,0.25)">
+      Default login: doctor / thyroai2024
+    </p>
+  </div>
+</div>
+
+<!-- ══════ MAIN APP ══════ -->
+<div id="app" class="hidden">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <h1>🧬 ThyroAI</h1>
+    <div style="display:flex;gap:10px;align-items:center">
+      <span id="doc-name"
+            style="color:rgba(255,255,255,0.5);font-size:0.9em"></span>
+      <button class="btn-sm" onclick="showSection('history')">
+        📋 History
+      </button>
+      <button class="btn-danger" onclick="logout()">Logout</button>
+    </div>
+  </div>
+
+  <!-- Mode Toggle -->
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="btn-simple"
+            onclick="setMode('simple')">
+      👤 Simple Mode (For Patients)
+    </button>
+    <button class="mode-btn" id="btn-advanced"
+            onclick="setMode('advanced')">
+      🩺 Advanced Mode (For Doctors)
+    </button>
+  </div>
+
+  <!-- ── SIMPLE MODE ── -->
+  <div id="simple-mode">
+    <div class="card">
+      <h2>📋 Basic Health Information</h2>
+      <p class="subtitle">
+        Fill in your basic information below.
+        You don't need to know medical terms — we'll explain everything!
+      </p>
+
+      <div class="section-title">👤 Personal Details</div>
+      <div class="grid">
+        <div class="form-group">
+          <label>
+            Your Age *
+            <span class="tooltip-wrap">
+              <span class="info-icon">?</span>
+              <span class="tip">Enter your age in years</span>
+            </span>
+          </label>
+          <input type="number" id="s-age"
+                 placeholder="e.g. 45" min="1" max="120">
+          <span class="err-msg hidden" id="err-s-age">
+            Please enter a valid age
+          </span>
+        </div>
+        <div class="form-group">
+          <label>Gender</label>
+          <select id="s-gender">
+            <option value="F">Female</option>
+            <option value="M">Male</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="section-title">🚬 Lifestyle</div>
+      <div class="grid">
+        <div class="form-group">
+          <label>
+            Do you currently smoke?
+          </label>
+          <select id="s-smoking">
+            <option value="No">No, I don't smoke</option>
+            <option value="Yes">Yes, I smoke</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>
+            Did you ever smoke in the past?
+          </label>
+          <select id="s-hx-smoking">
+            <option value="No">No, never smoked</option>
+            <option value="Yes">Yes, I used to smoke</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>
+            Have you ever had radiation therapy?
+            <span class="tooltip-wrap">
+              <span class="info-icon">?</span>
+              <span class="tip">
+                Radiation therapy = treatment using X-rays or
+                similar rays to treat cancer or other conditions
+              </span>
+            </span>
+          </label>
+          <select id="s-radio">
+            <option value="No">No</option>
+            <option value="Yes">Yes</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>
+            How does your thyroid feel?
+            <span class="tooltip-wrap">
+              <span class="info-icon">?</span>
+              <span class="tip">
+                Your thyroid is a butterfly-shaped gland in your neck
+              </span>
+            </span>
+          </label>
+          <select id="s-thyroid">
+            <option value="Euthyroid">
+              Normal — no symptoms
+            </option>
+            <option value="Clinical Hyperthyroidism">
+              Overactive — fast heartbeat, weight loss, sweating
+            </option>
+            <option value="Clinical Hypothyroidism">
+              Underactive — tired, weight gain, feeling cold
+            </option>
+            <option value="Subclinical Hyperthyroidism">
+              Mildly overactive — slight symptoms
+            </option>
+            <option value="Subclinical Hypothyroidism">
+              Mildly underactive — slight symptoms
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <div class="section-title">🔍 Neck & Symptoms</div>
+      <div class="grid">
+        <div class="form-group">
+          <label>
+            Do you feel any lumps in your neck?
+            <span class="tooltip-wrap">
+              <span class="info-icon">?</span>
+              <span class="tip">
+                A lump or swelling you can feel when you touch your neck
+              </span>
+            </span>
+          </label>
+          <select id="s-phys">
+            <option value="Normal">
+              No — neck feels normal
+            </option>
+            <option value="Single nodular goiter-right">
+              Yes — one lump on the right side
+            </option>
+            <option value="Single nodular goiter-left">
+              Yes — one lump on the left side
+            </option>
+            <option value="Multinodular goiter">
+              Yes — multiple lumps
+            </option>
+            <option value="Diffuse goiter">
+              Yes — whole neck area is swollen
+            </option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>
+            Are your neck glands swollen?
+            <span class="tooltip-wrap">
+              <span class="info-icon">?</span>
+              <span class="tip">
+                Swollen glands = small bumps under your jaw or
+                sides of neck that feel tender or enlarged
+              </span>
+            </span>
+          </label>
+          <select id="s-adenopathy">
+            <option value="No">No swelling</option>
+            <option value="Right">Swollen on right side</option>
+            <option value="Left">Swollen on left side</option>
+            <option value="Bilateral">Swollen on both sides</option>
+            <option value="Extensive">
+              Many swollen glands
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <div class="section-title">🏥 Medical History</div>
+      <div class="grid">
+        <div class="form-group">
+          <label>
+            What did the biopsy/test show?
+            <span class="tooltip-wrap">
+              <span class="info-icon">?</span>
+              <span class="tip">
+                What type of cells did the doctor find?
+                If unknown, select "Not tested yet"
+              </span>
+            </span>
+          </label>
+          <select id="s-pathology">
+            <option value="Micropapillary">
+              Small papillary cells (least serious)
+            </option>
+            <option value="Papillary">
+              Papillary cells (most common type)
+            </option>
+            <option value="Follicular">
+              Follicular cells
+            </option>
+            <option value="Hurthel cell">
+              Hurthle cells (rare type)
+            </option>
+            <option value="Tall Cell">
+              Tall cells (more aggressive)
+            </option>
+            <option value="Anaplastic">
+              Anaplastic (most serious type)
+            </option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>
+            How many tumors found?
+            <span class="tooltip-wrap">
+              <span class="info-icon">?</span>
+              <span class="tip">
+                Did the doctor find one tumor or multiple?
+              </span>
+            </span>
+          </label>
+          <select id="s-focality">
+            <option value="Uni-Focal">Only one tumor</option>
+            <option value="Multi-Focal">Multiple tumors</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>
+            Overall risk level (as told by doctor)
+          </label>
+          <select id="s-risk">
+            <option value="Low">Low risk</option>
+            <option value="Intermediate">Medium risk</option>
+            <option value="High">High risk</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>
+            How well did treatment work?
+            <span class="tooltip-wrap">
+              <span class="info-icon">?</span>
+              <span class="tip">
+                What did the doctor say after your treatment?
+              </span>
+            </span>
+          </label>
+          <select id="s-response">
+            <option value="Excellent">
+              Excellent — no signs of cancer left
+            </option>
+            <option value="Indeterminate">
+              Unclear — doctor is monitoring
+            </option>
+            <option value="Biochemical Incomplete">
+              Incomplete — blood tests still abnormal
+            </option>
+            <option value="Structural Incomplete">
+              Incomplete — scan still shows something
+            </option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>
+            Tumor size (as told by doctor)
+            <span class="tooltip-wrap">
+              <span class="info-icon">?</span>
+              <span class="tip">T1a=tiny, T4b=very large</span>
+            </span>
+          </label>
+          <select id="s-t">
+            <option value="T1a">Very small (under 1cm)</option>
+            <option value="T1b">Small (1–2cm)</option>
+            <option value="T2">Medium (2–4cm)</option>
+            <option value="T3a">Large (over 4cm)</option>
+            <option value="T3b">
+              Large with muscle involvement
+            </option>
+            <option value="T4a">
+              Spread outside thyroid
+            </option>
+            <option value="T4b">
+              Spread to spine or blood vessels
+            </option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>
+            Has cancer spread to lymph nodes?
+            <span class="tooltip-wrap">
+              <span class="info-icon">?</span>
+              <span class="tip">
+                Did the doctor say cancer reached the lymph nodes?
+              </span>
+            </span>
+          </label>
+          <select id="s-n">
+            <option value="N0">
+              No — not in lymph nodes
+            </option>
+            <option value="N1a">
+              Yes — in central neck nodes
+            </option>
+            <option value="N1b">
+              Yes — spread further in neck
+            </option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>
+            Has cancer spread to other body parts?
+            <span class="tooltip-wrap">
+              <span class="info-icon">?</span>
+              <span class="tip">
+                Did cancer reach lungs, bones or other organs?
+              </span>
+            </span>
+          </label>
+          <select id="s-m">
+            <option value="M0">
+              No — stayed in neck area
+            </option>
+            <option value="M1">
+              Yes — spread to other parts of body
+            </option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>
+            Cancer stage (as told by doctor)
+          </label>
+          <select id="s-stage">
+            <option value="I">Stage I — early</option>
+            <option value="II">Stage II</option>
+            <option value="III">Stage III</option>
+            <option value="IVA">Stage IVA — advanced</option>
+            <option value="IVB">Stage IVB — very advanced</option>
+          </select>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" onclick="runSimple()">
+        🔍 Check My Risk
+      </button>
+    </div>
+  </div>
+
+  <!-- ── ADVANCED MODE ── -->
+  <div id="advanced-mode" class="hidden">
+    <div class="card">
+      <h2>🩺 Clinical Assessment Form</h2>
+      <p class="subtitle">
+        Medical professional input — use standard clinical terminology
+      </p>
+
+      <div class="section-title">Patient Demographics</div>
+      <div class="grid">
+        <div class="form-group">
+          <label>Age *</label>
+          <input type="number" id="a-age" placeholder="e.g. 45">
+          <span class="err-msg hidden" id="err-a-age">
+            Valid age required
+          </span>
+        </div>
+        <div class="form-group">
+          <label>Gender</label>
+          <select id="a-gender">
+            <option value="F">Female (F)</option>
+            <option value="M">Male (M)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="section-title">Risk Factors</div>
+      <div class="grid">
+        <div class="form-group">
+          <label>Smoking Status</label>
+          <select id="a-smoking">
+            <option value="No">Non-smoker</option>
+            <option value="Yes">Active smoker</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Smoking History (Hx)</label>
+          <select id="a-hx-smoking">
+            <option value="No">No history</option>
+            <option value="Yes">Past smoker</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Hx Radiotherapy</label>
+          <select id="a-radio">
+            <option value="No">None</option>
+            <option value="Yes">Prior radiotherapy</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Thyroid Function</label>
+          <select id="a-thyroid">
+            <option value="Euthyroid">Euthyroid</option>
+            <option value="Clinical Hyperthyroidism">
+              Clinical Hyperthyroidism
+            </option>
+            <option value="Clinical Hypothyroidism">
+              Clinical Hypothyroidism
+            </option>
+            <option value="Subclinical Hyperthyroidism">
+              Subclinical Hyperthyroidism
+            </option>
+            <option value="Subclinical Hypothyroidism">
+              Subclinical Hypothyroidism
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <div class="section-title">Clinical Findings</div>
+      <div class="grid">
+        <div class="form-group">
+          <label>Physical Examination</label>
+          <select id="a-phys">
+            <option value="Single nodular goiter-right">
+              Single nodular goiter — right
+            </option>
+            <option value="Single nodular goiter-left">
+              Single nodular goiter — left
+            </option>
+            <option value="Multinodular goiter">
+              Multinodular goiter
+            </option>
+            <option value="Normal">Normal</option>
+            <option value="Diffuse goiter">Diffuse goiter</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Adenopathy</label>
+          <select id="a-adenopathy">
+            <option value="No">None</option>
+            <option value="Right">Right cervical</option>
+            <option value="Left">Left cervical</option>
+            <option value="Bilateral">Bilateral</option>
+            <option value="Extensive">Extensive</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Pathology</label>
+          <select id="a-pathology">
+            <option value="Micropapillary">Micropapillary</option>
+            <option value="Papillary">Papillary</option>
+            <option value="Follicular">Follicular</option>
+            <option value="Hurthel cell">Hurthle cell</option>
+            <option value="Tall Cell">Tall Cell</option>
+            <option value="Anaplastic">Anaplastic</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Focality</label>
+          <select id="a-focality">
+            <option value="Uni-Focal">Unifocal</option>
+            <option value="Multi-Focal">Multifocal</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="section-title">TNM Staging</div>
+      <div class="grid">
+        <div class="form-group">
+          <label>T Stage</label>
+          <select id="a-t">
+            <option>T1a</option><option>T1b</option>
+            <option>T2</option><option>T3a</option>
+            <option>T3b</option><option>T4a</option>
+            <option>T4b</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>N Stage</label>
+          <select id="a-n">
+            <option>N0</option>
+            <option>N1a</option>
+            <option>N1b</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>M Stage</label>
+          <select id="a-m">
+            <option>M0</option>
+            <option>M1</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Overall Stage</label>
+          <select id="a-stage">
+            <option>I</option><option>II</option>
+            <option>III</option><option>IVA</option>
+            <option>IVB</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Risk Stratification</label>
+          <select id="a-risk">
+            <option value="Low">Low</option>
+            <option value="Intermediate">Intermediate</option>
+            <option value="High">High</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Treatment Response</label>
+          <select id="a-response">
+            <option value="Excellent">Excellent</option>
+            <option value="Indeterminate">Indeterminate</option>
+            <option value="Biochemical Incomplete">
+              Biochemical Incomplete
+            </option>
+            <option value="Structural Incomplete">
+              Structural Incomplete
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" onclick="runAdvanced()">
+        🔬 Run Clinical Analysis
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading hidden" id="loading">
+    ⏳ Analyzing patient data with AI...
+  </div>
+
+  <!-- Results -->
+  <div id="results-section" class="hidden">
+    <div id="risk-alert" class="alert"></div>
+    <div class="card">
+      <h2>📊 AI Assessment Results</h2>
+      <div class="result-grid">
+        <div class="result-card">
+          <h3>🔍 Cancer Detection</h3>
+          <div class="result-value" id="r-detect">—</div>
+          <div class="result-sub"  id="r-detect-conf">—</div>
+        </div>
+        <div class="result-card">
+          <h3>📊 Cancer Stage</h3>
+          <div class="result-value" id="r-stage">—</div>
+          <div class="result-sub"  id="r-stage-conf">—</div>
+        </div>
+        <div class="result-card">
+          <h3>🔴 Spread Status</h3>
+          <div class="result-value" id="r-meta">—</div>
+          <div class="result-sub"  id="r-meta-conf">—</div>
+        </div>
+      </div>
+
+      <!-- Donut Charts -->
+      <div class="chart-row">
+        <div class="chart-box">
+          <canvas id="c1"></canvas>
+          <p>Detection Confidence</p>
+        </div>
+        <div class="chart-box">
+          <canvas id="c2"></canvas>
+          <p>Stage Confidence</p>
+        </div>
+        <div class="chart-box">
+          <canvas id="c3"></canvas>
+          <p>Spread Risk</p>
+        </div>
+      </div>
+
+      <!-- Plain English Explanation -->
+      <div class="explain-box" id="explain-box">
+        <h4>💬 What does this mean?</h4>
+        <p id="explain-text"></p>
+      </div>
+
+      <!-- Action Buttons -->
+      <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap">
+        <button class="btn btn-sm" onclick="downloadReport()">
+          📄 Download Report
+        </button>
+        <button class="btn btn-sm" onclick="showSection('history')">
+          📋 View History
+        </button>
+        <button class="btn btn-sm" onclick="resetForm()">
+          🔄 New Patient
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- History -->
+  <div id="history-section" class="hidden">
+    <div class="card">
+      <h2>📋 Recent Patient History</h2>
+      <button class="btn btn-sm"
+              style="margin-bottom:15px"
+              onclick="showSection('form')">
+        ← Back to Form
+      </button>
+      <div id="history-content"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── State ─────────────────────────────────────────────
+let mode       = 'simple';
+let doctorName = '';
+let lastResult = null;
+let lastInput  = null;
+let charts     = {};
+
+// ── Login ─────────────────────────────────────────────
+async function login() {
+  const u   = document.getElementById('username').value;
+  const p   = document.getElementById('password').value;
+  const err = document.getElementById('login-err');
+
+  if (!u || !p) {
+    err.textContent = 'Please enter username and password';
+    err.style.display = 'block'; return;
+  }
+
+  try {
+    const res  = await fetch('http://127.0.0.1:5000/login', {
+      method : 'POST',
+      headers: {'Content-Type':'application/json'},
+      body   : JSON.stringify({username:u, password:p})
+    });
+    const data = await res.json();
+    if (data.status === 'success') {
+      doctorName = data.name;
+      document.getElementById('doc-name').textContent =
+        `👨‍⚕️ ${doctorName}`;
+      document.getElementById('login-page').classList.add('hidden');
+      document.getElementById('app').classList.remove('hidden');
+    } else {
+      err.textContent   = '❌ Invalid username or password';
+      err.style.display = 'block';
+    }
+  } catch(e) {
+    err.textContent   =
+      '❌ Cannot connect — make sure app.py is running';
+    err.style.display = 'block';
+  }
+}
+
+function logout() {
+  document.getElementById('login-page').classList.remove('hidden');
+  document.getElementById('app').classList.add('hidden');
+}
+
+// ── Mode Toggle ───────────────────────────────────────
+function setMode(m) {
+  mode = m;
+  document.getElementById('simple-mode').classList
+    .toggle('hidden', m !== 'simple');
+  document.getElementById('advanced-mode').classList
+    .toggle('hidden', m !== 'advanced');
+  document.getElementById('btn-simple').classList
+    .toggle('active', m === 'simple');
+  document.getElementById('btn-advanced').classList
+    .toggle('active', m === 'advanced');
+  hideResults();
+}
+
+// ── Section Nav ───────────────────────────────────────
+function showSection(sec) {
+  document.getElementById('results-section').classList.add('hidden');
+  document.getElementById('history-section').classList.add('hidden');
+  if (sec === 'history') {
+    document.getElementById('history-section')
+      .classList.remove('hidden');
+    loadHistory();
+  }
+}
+
+function hideResults() {
+  document.getElementById('results-section').classList.add('hidden');
+}
+
+// ── Collect Inputs ────────────────────────────────────
+function getSimplePayload() {
+  return {
+    Age                  : parseInt(document.getElementById('s-age').value),
+    Gender               : document.getElementById('s-gender').value,
+    Smoking              : document.getElementById('s-smoking').value,
+    'Hx Smoking'         : document.getElementById('s-hx-smoking').value,
+    'Hx Radiothreapy'    : document.getElementById('s-radio').value,
+    'Thyroid Function'   : document.getElementById('s-thyroid').value,
+    'Physical Examination': document.getElementById('s-phys').value,
+    Adenopathy           : document.getElementById('s-adenopathy').value,
+    Pathology            : document.getElementById('s-pathology').value,
+    Focality             : document.getElementById('s-focality').value,
+    Risk                 : document.getElementById('s-risk').value,
+    T                    : document.getElementById('s-t').value,
+    N                    : document.getElementById('s-n').value,
+    M                    : document.getElementById('s-m').value,
+    Stage                : document.getElementById('s-stage').value,
+    Response             : document.getElementById('s-response').value
+  };
+}
+
+function getAdvancedPayload() {
+  return {
+    Age                  : parseInt(document.getElementById('a-age').value),
+    Gender               : document.getElementById('a-gender').value,
+    Smoking              : document.getElementById('a-smoking').value,
+    'Hx Smoking'         : document.getElementById('a-hx-smoking').value,
+    'Hx Radiothreapy'    : document.getElementById('a-radio').value,
+    'Thyroid Function'   : document.getElementById('a-thyroid').value,
+    'Physical Examination': document.getElementById('a-phys').value,
+    Adenopathy           : document.getElementById('a-adenopathy').value,
+    Pathology            : document.getElementById('a-pathology').value,
+    Focality             : document.getElementById('a-focality').value,
+    Risk                 : document.getElementById('a-risk').value,
+    T                    : document.getElementById('a-t').value,
+    N                    : document.getElementById('a-n').value,
+    M                    : document.getElementById('a-m').value,
+    Stage                : document.getElementById('a-stage').value,
+    Response             : document.getElementById('a-response').value
+  };
+}
+
+// ── Validate ──────────────────────────────────────────
+function validateAge(id, errId) {
+  const age = parseInt(document.getElementById(id).value);
+  const err = document.getElementById(errId);
+  if (!age || age < 1 || age > 120) {
+    document.getElementById(id).classList.add('err');
+    err.classList.remove('hidden'); return false;
+  }
+  document.getElementById(id).classList.remove('err');
+  err.classList.add('hidden'); return true;
+}
+
+// ── Run Analysis ──────────────────────────────────────
+async function runSimple() {
+  if (!validateAge('s-age','err-s-age')) return;
+  await analyse(getSimplePayload());
+}
+
+async function runAdvanced() {
+  if (!validateAge('a-age','err-a-age')) return;
+  await analyse(getAdvancedPayload());
+}
+
+async function analyse(payload) {
+  lastInput = payload;
+  document.getElementById('loading').classList.remove('hidden');
+  document.getElementById('results-section').classList.add('hidden');
+  document.getElementById('history-section').classList.add('hidden');
+
+  try {
+    const res  = await fetch('http://127.0.0.1:5000/predict', {
+      method : 'POST',
+      headers: {'Content-Type':'application/json'},
+      body   : JSON.stringify(payload)
+    });
+    const data = await res.json();
+
+    if (data.status === 'success') {
+      lastResult = data;
+      displayResults(data, payload);
+    } else {
+      alert('Error: ' + data.message);
+    }
+  } catch(e) {
+    alert('Cannot connect to API. Make sure app.py is running.');
+  }
+
+  document.getElementById('loading').classList.add('hidden');
+}
+
+// ── Display Results ───────────────────────────────────
+function displayResults(data, input) {
+  const risk = data.overall_risk;
+
+  // Alert
+  const al = document.getElementById('risk-alert');
+  if (risk === 'HIGH') {
+    al.className   = 'alert alert-high';
+    al.innerHTML   =
+      '🚨 <strong>HIGH RISK</strong> — Please see a specialist immediately';
+  } else if (risk === 'MEDIUM') {
+    al.className   = 'alert alert-medium';
+    al.innerHTML   =
+      '⚠️ <strong>MEDIUM RISK</strong> — Schedule a follow-up within 2–4 weeks';
+  } else {
+    al.className   = 'alert alert-low';
+    al.innerHTML   =
+      '✅ <strong>LOW RISK</strong> — Routine monitoring recommended';
+  }
+
+  // Cards
+  const det = document.getElementById('r-detect');
+  det.textContent = data.detection.result;
+  det.className   = 'result-value ' +
+    (data.detection.result==='Positive' ? 'positive' : 'negative');
+  document.getElementById('r-detect-conf').textContent =
+    `Confidence: ${data.detection.confidence}%`;
+
+  document.getElementById('r-stage').textContent =
+    `Stage ${data.staging.stage}`;
+  document.getElementById('r-stage-conf').textContent =
+    `Confidence: ${data.staging.confidence}%`;
+
+  const metaEl = document.getElementById('r-meta');
+  metaEl.textContent = data.metastasis.status === 'M1'
+    ? 'Has Spread' : 'Not Spread';
+  metaEl.className   = 'result-value ' +
+    (data.metastasis.status==='M1' ? 'positive' : 'negative');
+  document.getElementById('r-meta-conf').textContent =
+    `Risk: ${data.metastasis.risk}%`;
+
+  // Charts
+  const dc = data.detection.result==='Positive' ? '#ff4757' : '#2ed573';
+  drawDonut('c1', data.detection.confidence,  dc);
+  drawDonut('c2', data.staging.confidence,    '#00d4ff');
+  drawDonut('c3', data.metastasis.risk,        '#ff6b81');
+
+  // Plain English explanation
+  buildExplanation(data, input);
+
+  document.getElementById('results-section').classList.remove('hidden');
+  document.getElementById('results-section')
+    .scrollIntoView({behavior:'smooth'});
+}
+
+// ── Plain English Explanation ─────────────────────────
+function buildExplanation(data, input) {
+  const det   = data.detection.result;
+  const stage = data.staging.stage;
+  const meta  = data.metastasis.status;
+  const risk  = data.overall_risk;
+  const age   = input.Age;
+
+  let text = '';
+
+  if (det === 'Negative') {
+    text += `Based on the information provided, the AI does not detect
+      signs of active cancer recurrence for this ${age}-year-old patient. `;
+  } else {
+    text += `The AI has detected signs that suggest possible cancer
+      activity for this ${age}-year-old patient. `;
+  }
+
+  text += `The predicted cancer stage is <strong>Stage ${stage}</strong>. `;
+
+  if (meta === 'M0') {
+    text += `The cancer does <strong>not appear to have spread</strong>
+      to other parts of the body. `;
+  } else {
+    text += `There are signs the cancer <strong>may have spread</strong>
+      to other parts of the body — this needs urgent attention. `;
+  }
+
+  if (risk === 'LOW') {
+    text += `Overall this appears to be a <strong>low risk case</strong>.
+      Regular check-ups every 6 months are recommended.`;
+  } else if (risk === 'MEDIUM') {
+    text += `This is a <strong>medium risk case</strong>.
+      A specialist consultation within the next few weeks is advised.`;
+  } else {
+    text += `This is a <strong>high risk case</strong>.
+      Please seek specialist medical attention as soon as possible.`;
+  }
+
+  document.getElementById('explain-text').innerHTML = text;
+}
+
+// ── Donut Chart ───────────────────────────────────────
+function drawDonut(id, value, color) {
+  if (charts[id]) { charts[id].destroy(); }
+  const ctx = document.getElementById(id).getContext('2d');
+  charts[id] = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      datasets:[{
+        data: [value, 100-value],
+        backgroundColor: [color,'rgba(255,255,255,0.04)'],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      cutout: '72%',
+      plugins: { legend:{display:false}, tooltip:{enabled:false} },
+      animation: { animateRotate:true }
+    },
+    plugins:[{
+      id:'ct',
+      beforeDraw(chart){
+        const {ctx:c, chartArea:{width,height,top}} = chart;
+        c.save();
+        c.font      = 'bold 16px Segoe UI';
+        c.fillStyle = color;
+        c.textAlign = 'center';
+        c.textBaseline = 'middle';
+        c.fillText(value.toFixed(1)+'%', width/2, top+height/2);
+        c.restore();
+      }
+    }]
+  });
+}
+
+// ── Download Report ───────────────────────────────────
+function downloadReport() {
+  if (!lastResult) return;
+  const d   = lastResult;
+  const now = new Date().toLocaleString();
+  const inp = lastInput || {};
+
+  const lines = [
+    '================================================',
+    '     THYROAI — PATIENT ASSESSMENT REPORT',
+    '================================================',
+    `Generated  : ${now}`,
+    `Doctor     : ${doctorName}`,
+    '------------------------------------------------',
+    'PATIENT INFORMATION',
+    `Age        : ${inp.Age || 'N/A'}`,
+    `Gender     : ${inp.Gender || 'N/A'}`,
+    `Risk Level : ${inp.Risk || 'N/A'}`,
+    '------------------------------------------------',
+    'AI ASSESSMENT',
+    `Detection  : ${d.detection.result}`,
+    `Confidence : ${d.detection.confidence}%`,
+    '',
+    `Stage      : ${d.staging.stage}`,
+    `Confidence : ${d.staging.confidence}%`,
+    '',
+    `Metastasis : ${d.metastasis.status}`,
+    `Risk       : ${d.metastasis.risk}%`,
+    '',
+    `Overall    : ${d.overall_risk} RISK`,
+    '------------------------------------------------',
+    'RECOMMENDATION',
+    d.overall_risk==='HIGH'
+      ? 'URGENT: Immediate specialist referral required.'
+      : d.overall_risk==='MEDIUM'
+      ? 'Follow-up consultation within 2-4 weeks.'
+      : 'Routine monitoring. 6-month follow-up advised.',
+    '================================================',
+    'ThyroAI v2.0 — AI-Powered Thyroid Cancer Detection',
+    'NOTE: AI-generated report. Confirm with a physician.',
+    '================================================'
+  ];
+
+  const blob = new Blob([lines.join('\n')], {type:'text/plain'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `ThyroAI_Report_${Date.now()}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── History ───────────────────────────────────────────
+async function loadHistory() {
+  document.getElementById('history-content').innerHTML =
+    '<p style="color:#00d4ff;padding:15px">⏳ Loading...</p>';
+  try {
+    const res  = await fetch('http://127.0.0.1:5000/history');
+    const data = await res.json();
+    if (data.status==='success' && data.history.length>0) {
+      let html = `<table>
+        <tr>
+          <th>Time</th><th>Age</th><th>Gender</th>
+          <th>Detection</th><th>Stage</th>
+          <th>Spread</th><th>Risk</th>
+        </tr>`;
+      data.history.forEach(r => {
+        const b = r.overall_risk==='HIGH'   ? 'badge-high'   :
+                  r.overall_risk==='MEDIUM' ? 'badge-medium' : 'badge-low';
+        const dColor = r.detection==='Positive'
+          ? 'color:#ff4757' : 'color:#2ed573';
+        html += `<tr>
+          <td>${r.timestamp}</td>
+          <td>${r.age}</td>
+          <td>${r.gender}</td>
+          <td style="${dColor}">${r.detection}</td>
+          <td>Stage ${r.stage}</td>
+          <td>${r.metastasis==='M1' ? '⚠️ Spread' : '✅ None'}</td>
+          <td><span class="badge ${b}">${r.overall_risk}</span></td>
+        </tr>`;
+      });
+      html += '</table>';
+      document.getElementById('history-content').innerHTML = html;
+    } else {
+      document.getElementById('history-content').innerHTML =
+        '<p style="color:rgba(255,255,255,0.4);padding:20px">' +
+        'No history yet.</p>';
+    }
+  } catch(e) {
+    document.getElementById('history-content').innerHTML =
+      '<p style="color:#ff4757">Could not load history.</p>';
+  }
+}
+
+// ── Reset ─────────────────────────────────────────────
+function resetForm() {
+  document.getElementById('results-section').classList.add('hidden');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+// ── Enter key login ───────────────────────────────────
+document.addEventListener('keypress', e => {
+  if (e.key==='Enter' &&
+      !document.getElementById('login-page')
+       .classList.contains('hidden')) login();
+});
+</script>
+</body>
+</html>
